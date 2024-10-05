@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "axios": "^1.7.7",
+    "chalk": "^4.1.2",
+    "figlet": "^1.7.0"
+  },
+  "name": "eth",
+  "version": "1.0.0",
+  "main": "eth.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "SKW AIRDROP HUNTER",
+  "license": "ISC",
+  "description": ""
+}
