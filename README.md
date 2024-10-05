@@ -31,7 +31,7 @@ query_id=AAE3
 
 **4. Jalankan bot**
 ```
-node index.js
+node main.js
 ```
 
 **Sodah kerjekan mun sian botnye**
