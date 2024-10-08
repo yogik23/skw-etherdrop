@@ -99,7 +99,7 @@ class MiniAppAPI {
     }
 
     async getQuests(token) {
-        const url = 'https://api.miniapp.dropstab.com/api/quest/active';
+        const url = 'https://api.miniapp.dropstab.com/api/quest';
         const headers = { ...this.headers, 'Authorization': `Bearer ${token}` };
 
         try {
@@ -111,9 +111,13 @@ class MiniAppAPI {
                     status: quest.status
                 }))
             );
-            console.log(chalk.cyan(`Quest Tersedia`));
+            console.log(chalk.cyan(`ALL QUEST`));
             quests.forEach(quest => {
-                console.log(chalk.blue(`- ${quest.name} (Status: ${quest.status})`));
+                if (quest.status === 'NEW') {
+                    console.log(chalk.blue(`- ${quest.name} (Status: ${quest.status})`));
+                } else if (quest.status === 'COMPLETED') {
+                    console.log(chalk.green(`- ${quest.name} (Status: ${quest.status})`));
+                }
             });
             return quests;
         } catch (error) {
@@ -184,9 +188,11 @@ class MiniAppAPI {
         console.log(chalk.gray('Mengerjakan quest..perlu beberapa jam agar quest bisa diclaim'));
 
         for (const quest of quests) {
-            const { id, name } = quest;
-            const result = await this.doQuest(token, id, name);
-            verificationResults.push({ id, name, result });
+            if (quest.status === 'NEW') {
+                const { id, name } = quest;
+                const result = await this.doQuest(token, id, name);
+                verificationResults.push({ id, name, result });
+            }
         }
 
         await new Promise(resolve => setTimeout(resolve, 3000));
