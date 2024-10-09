@@ -4,6 +4,8 @@
 - Auto complete task
 - Daily check in
 - Multi Akun
+- Daily Task
+- Send Notif Ke Telegram
 
 
 ### Step
@@ -28,8 +30,21 @@ query_id=AAE1
 query_id=AAE2 
 query_id=AAE3
 ```
-
-**4. Jalankan bot**
+**4. Submit API Token & UserID Telegram di file** `.env`
+```
+nano .env
+```
+format .env
+```
+TELEGRAM_BOT_TOKEN=APITOKENBOT
+TELEGRAM_CHAT_ID=UserIDtelegram
+```
+contoh format .env
+```
+TELEGRAM_BOT_TOKEN=1234677824:AAEasddCuj-iBp0sJUkNAtpH3VuY4tSqWHFI
+TELEGRAM_CHAT_ID=123456789
+```
+**5. Jalankan bot**
 ```
 node main.js
 ```
