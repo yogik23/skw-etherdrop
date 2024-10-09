@@ -3,7 +3,11 @@ const fs = require('fs').promises;
 const path = require('path');
 const chalk = require('chalk');
 const figlet = require('figlet');
+require('dotenv').config();
 const displayWelcomeMessage = require('./welcomeMessage');
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 class MiniAppAPI {
     constructor() {
@@ -38,6 +42,7 @@ class MiniAppAPI {
             console.error(chalk.red('Authentication failed:'), error.message);
             if (error.response) {
                 console.error('Error details:', error.response.data);
+                const errorMessage = `Authentication failed: ${error.response.data.message || error.message}`;
             }
             return null;
         }
@@ -70,6 +75,19 @@ class MiniAppAPI {
         }
     }
 
+    async totalBalance(tokensList) {
+        let total = 0;
+
+        for (const tokens of tokensList) {
+            const profile = await this.getProfile(tokens.accessToken);
+            if (profile) {
+                total += parseFloat(profile.balance);
+            }
+        }
+
+        return total;
+    }
+
     async dailyBonus(token) {
         const url = 'https://api.miniapp.dropstab.com/api/bonus/dailyBonus';
         const headers = { ...this.headers, 'Authorization': `Bearer ${token}` };
@@ -98,6 +116,23 @@ class MiniAppAPI {
         }
     }
 
+
+    async claimreff(token) {
+        const url = 'https://api.miniapp.dropstab.com/api/refLink/claim';
+        const headers = { ...this.headers, 'Authorization': `Bearer ${token}` };
+
+        try {
+            const response = await axios.post(url, {}, { headers });
+            return {
+                totalReward: response.data.totalReward,
+                availableToClaim: response.data.availableToClaim
+            };
+        } catch (error) {
+            console.error(chalk.red('Failed to claim reff:'), error.message);
+            return null;
+        }
+    }
+
     async getQuests(token) {
         const url = 'https://api.miniapp.dropstab.com/api/quest';
         const headers = { ...this.headers, 'Authorization': `Bearer ${token}` };
@@ -111,12 +146,12 @@ class MiniAppAPI {
                     status: quest.status
                 }))
             );
-            console.log(chalk.cyan(`ALL QUEST`));
+            console.log(chalk.cyan(`AVAILABLE QUEST`));
             quests.forEach(quest => {
                 if (quest.status === 'NEW') {
                     console.log(chalk.blue(`- ${quest.name} (Status: ${quest.status})`));
                 } else if (quest.status === 'COMPLETED') {
-                    console.log(chalk.green(`- ${quest.name} (Status: ${quest.status})`));
+
                 }
             });
             return quests;
@@ -156,6 +191,29 @@ class MiniAppAPI {
         }
     }
 
+    async xnxx(accessToken, refreshToken) {
+        let token = accessToken;
+        const quests = await this.getQuests(token);
+        if (!quests) return;
+        const verificationResults = [];
+
+        for (const quest of quests) {
+            if (quest.status === 'NEW') {
+                const { id, name } = quest;
+                const result = await this.doQuest(token, id, name);
+                verificationResults.push({ id, name, result });
+            }
+        }
+
+        for (const { id, name } of verificationResults) {
+            const claimResult = await this.claimQuest(token, id, name);
+            console.log(
+                claimResult 
+                    ? chalk.green(`- ${name} Berhasil`) 
+                    : chalk.red(`- ${name}... Kerjakan Manual`)
+            );
+        }
+    }
 
     async processall(accessToken, refreshToken) {
         let token = accessToken;
@@ -185,7 +243,7 @@ class MiniAppAPI {
         if (!quests) return;
 
         const verificationResults = [];
-        console.log(chalk.gray('Mengerjakan quest..perlu beberapa jam agar quest bisa diclaim'));
+        console.log(chalk.gray('Mengerjakan quest..perlu beberapa menit agar quest bisa diclaim'));
 
         for (const quest of quests) {
             if (quest.status === 'NEW') {
@@ -205,6 +263,39 @@ class MiniAppAPI {
                     : chalk.red(`- ${name}... Kerjakan Manual`)
             );
         }
+          
+        const claimReffResult = await this.claimreff(token);
+        if (claimReffResult) {
+            if (claimReffResult.totalReward === 0) {
+                console.log(chalk.blue(`Tidak ada reward Reff : ${claimReffResult.availableToClaim}`));
+            } else {
+                console.log(chalk.green(`Sukses Claim Reff : ${claimReffResult.availableToClaim}`));
+            }
+
+        } else {
+            console.error(chalk.red('Gagal klaim referensi.'));
+        }
+
+    }
+}
+
+async function sendToTelegram(totalAccounts, totalBalance) {
+    const message = `🔹 *Etherdrops Report
+
+        🤖 Total Akun: ${totalAccounts || 'Query Sudah Expired'}
+        💰 Total Balance: ${totalBalance || 'Silahkan Ganti Baru'}
+
+         ==SKW Airdrop Hunter==*`;
+
+    try {
+        await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            chat_id: TELEGRAM_CHAT_ID,
+            text: message,
+            parse_mode: 'Markdown' 
+        });
+        console.log(chalk.green('Pesan berhasil dikirim ke Telegram.'));
+    } catch (error) {
+        console.error(chalk.red('Gagal mengirim pesan ke Telegram:'), error.message);
     }
 }
 
@@ -215,6 +306,8 @@ async function startBot() {
     try {
         const data = await fs.readFile(dataFile, 'utf8');
         const users = data.split('\n').filter(Boolean);
+        const tokensList = [];
+        let totalBalanceBeforeXnxx = 0;
 
         for (let user of users) {
             const userData = Object.fromEntries(new URLSearchParams(user.trim()));
@@ -226,23 +319,61 @@ async function startBot() {
             const tokens = await api.auth(payload);
             if (tokens) {
                 const { accessToken, refreshToken } = tokens;
+                tokensList.push(tokens);
 
                 const profile = await api.getProfile(accessToken);
-                console.log(chalk.magenta.bold(`Akun ${profile.tgUsername}`));
-
+                console.log(chalk.magenta.bold(`Akun: ${profile.tgUsername}`));
                 await api.processall(accessToken, refreshToken);
-                console.log(chalk.green.bold(`Balance ${profile.tgUsername} : ${profile.balance}`));
-                console.log('');
+                console.log(chalk.magenta(`Balance ${profile.tgUsername} : ${profile.balance}\n`));
+
+                const updatedProfile = await api.getProfile(accessToken);
+                totalBalanceBeforeXnxx += parseFloat(updatedProfile.balance);
             } else {
                 console.error(chalk.red('Authentication failed or no token received.'));
             }
         }
 
+        console.log(chalk.green.bold(`Total Balance Semua Akun : ${totalBalanceBeforeXnxx}\n\n`));
+
+
+        await new Promise(resolve => {
+            let countdown = 780;
+
+            const countdownInterval = setInterval(() => {
+                if (countdown > 0) {
+                    process.stdout.write(chalk.magenta(`Cooldown Claim Quest: ${countdown} detik. Bot By skwairdrop\r`));
+                    countdown--;
+                } else {
+                    clearInterval(countdownInterval);
+                    resolve();
+                    console.log();
+                }
+            }, 1000);
+        });
+
+
+        for (const tokens of tokensList) {
+            const profile = await api.getProfile(tokens.accessToken);
+            console.log(chalk.magenta.bold(`Akun: ${profile.tgUsername}`));
+            await api.xnxx(tokens.accessToken, tokens.refreshToken);
+            console.log(``);
+        }
+
+        let totalBalanceAfterXnxx = 0;
+        for (const tokens of tokensList) {
+            const profile = await api.getProfile(tokens.accessToken);
+            console.log(chalk.magenta(`Balance ${profile.tgUsername}: ${profile.balance}`));
+            totalBalanceAfterXnxx += parseFloat(profile.balance);
+        }
+
+        console.log(chalk.green.bold(`Total Balance Semua Akun: ${totalBalanceAfterXnxx}`));
+
+        await sendToTelegram(tokensList.length, totalBalanceAfterXnxx);
+
     } catch (error) {
         console.error(chalk.red('Error reading data file:'), error.message);
     }
 }
-
 
 async function main() {
   console.clear();
