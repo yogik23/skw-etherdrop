@@ -213,7 +213,21 @@ class MiniAppAPI {
                     : chalk.red(`- ${name}... Kerjakan Manual`)
             );
         }
+
+        const claimReffResult = await this.claimreff(token);
+        if (claimReffResult) {
+            if (claimReffResult.totalReward === 0) {
+                console.log(chalk.blue(`Tidak ada reward Reff : ${claimReffResult.availableToClaim}`));
+            } else {
+                console.log(chalk.green(`Sukses Claim Reff : ${claimReffResult.availableToClaim}`));
+            }
+
+        } else {
+            console.error(chalk.red('Gagal klaim referensi.'));
+        }
+
     }
+
 
     async processall(accessToken, refreshToken) {
         let token = accessToken;
@@ -337,7 +351,7 @@ async function startBot() {
 
 
         await new Promise(resolve => {
-            let countdown = 780;
+            let countdown = 10;
 
             const countdownInterval = setInterval(() => {
                 if (countdown > 0) {
