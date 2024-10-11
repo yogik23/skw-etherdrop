@@ -351,7 +351,7 @@ async function startBot() {
 
 
         await new Promise(resolve => {
-            let countdown = 10;
+            let countdown = 3600;
 
             const countdownInterval = setInterval(() => {
                 if (countdown > 0) {
