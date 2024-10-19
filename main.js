@@ -3,11 +3,17 @@ const fs = require('fs').promises;
 const path = require('path');
 const chalk = require('chalk');
 const figlet = require('figlet');
+const cron = require('node-cron');
 require('dotenv').config();
-const displayWelcomeMessage = require('./welcomeMessage');
+const displayskw = require('./displayskw');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const date = new Date().toLocaleDateString('id-ID');
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 class MiniAppAPI {
     constructor() {
@@ -39,9 +45,9 @@ class MiniAppAPI {
 
             return { accessToken, refreshToken };
         } catch (error) {
-            console.error(chalk.red('Authentication failed:'), error.message);
+            console.error(chalk.red('Gagal Login: Silahkan Ganti Query Baru'));
             if (error.response) {
-                console.error('Error details:', error.response.data);
+                console.error( );
                 const errorMessage = `Authentication failed: ${error.response.data.message || error.message}`;
             }
             return null;
@@ -294,7 +300,7 @@ class MiniAppAPI {
 }
 
 async function sendToTelegram(totalAccounts, totalBalance) {
-    const message = `🔹 *Etherdrops Report
+    const message = `🔹 *Etherdrops Report ${date}
 
         🤖 Total Akun: ${totalAccounts || 'Query Sudah Expired'}
         💰 Total Balance: ${totalBalance || 'Silahkan Ganti Baru'}
@@ -314,6 +320,11 @@ async function sendToTelegram(totalAccounts, totalBalance) {
 }
 
 async function startBot() {
+    console.clear();
+    displayskw();
+    console.log();
+    await delay(3000)
+
     const api = new MiniAppAPI();
     const dataFile = path.join(__dirname, 'data.txt');
 
@@ -343,7 +354,6 @@ async function startBot() {
                 const updatedProfile = await api.getProfile(accessToken);
                 totalBalanceBeforeXnxx += parseFloat(updatedProfile.balance);
             } else {
-                console.error(chalk.red('Authentication failed or no token received.'));
             }
         }
 
@@ -351,7 +361,7 @@ async function startBot() {
 
 
         await new Promise(resolve => {
-            let countdown = 3600;
+            let countdown = 10;
 
             const countdownInterval = setInterval(() => {
                 if (countdown > 0) {
@@ -390,36 +400,17 @@ async function startBot() {
 }
 
 async function main() {
-  console.clear();
-  const intervalTime = (24 * 60 * 60 * 1000);
+    cron.schedule('0 1 * * *', async () => { 
+        await startBot();
+        console.log();
+        console.log(chalk.magenta.bold(`Cron AKTIF`));
+        console.log(chalk.magenta('Jam 08:00 WIB Autobot Akan Run Ulang...'));
+    });
 
-  const runBot = async () => {
-    displayWelcomeMessage();
     await startBot();
-    startCountdown();
-  };
-
-  const startCountdown = () => {
-    let countdown = intervalTime / 1000;
-
-    const countdownInterval = setInterval(() => {
-      if (countdown <= 0) {
-        clearInterval(countdownInterval);
-        console.log(chalk.red('Waktu habis, menjalankan bot kembali...\n'));
-      } else {
-        process.stdout.clearLine();
-        process.stdout.cursorTo(0);
-        process.stdout.write(chalk.magenta(`Cooldown Claim Berikutnya: ${countdown} detik. Bot By skwairdrop`));
-        countdown--;
-      }
-    }, 1000);
-  };
-
-  await runBot();
-
-  setInterval(runBot, intervalTime);
+    console.log();
+    console.log(chalk.magenta.bold(`Cron AKTIF`));
+    console.log(chalk.magenta('Jam 08:00 WIB Autobot Akan Run Ulang...'));
 }
 
-if (require.main === module) {
-  main();
-}
+main();
