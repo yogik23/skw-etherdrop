@@ -3,6 +3,7 @@
 ### Fitur
 - Auto complete task
 - Daily check in
+- Auto Predik
 - Multi Akun
 - Daily Task
 - Send Notif Ke Telegram
