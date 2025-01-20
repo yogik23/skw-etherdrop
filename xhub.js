@@ -33,12 +33,13 @@ async function predik(api, accessToken) {
             { id: 2, symbol: 'ETH' },
             { id: 19067, symbol: 'SOL' },
             { id: 34, symbol: 'DOGE' },
-            { id: 18, symbol: 'TRX' },
+            { id: 97592, symbol: 'TRUMP' },
             { id: 30777, symbol: 'TON' },
             { id: 49060, symbol: 'PEPE' },
             { id: 24716, symbol: 'SHIB' },
-            { id: 65340, symbol: 'NOT' },
-            { id: 77822, symbol: 'HMSTR' }
+            { id: 87640, symbol: 'AI16Z' },
+            { id: 91989, symbol: 'HYPE' },
+            { id: 14553, symbol: 'XRP' }
         ];
 
         const coinIds = coins.map(coin => coin.id);
