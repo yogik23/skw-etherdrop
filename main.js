@@ -7,7 +7,7 @@ const cron = require('node-cron');
 require('dotenv').config();
 const displayskw = require('./displayskw');
 const MiniAppAPI = require('./MiniAppAPI');
-const { xnxx, processall, predik }  = require('./xhub');
+const { processall, predik }  = require('./xhub');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
@@ -46,7 +46,7 @@ async function startBot() {
         const data = await fs.readFile(dataFile, 'utf8');
         const users = data.split('\n').filter(Boolean);
         const tokensList = [];
-        let totalBalanceBeforeXnxx = 0;
+        let totalBalanceXnxx = 0;
 
         for (let user of users) {
             const userData = Object.fromEntries(new URLSearchParams(user.trim()));
@@ -66,47 +66,14 @@ async function startBot() {
                 console.log(chalk.magenta(`Balance ${profile.tgUsername} : ${profile.balance}\n`));
 
                 const updatedProfile = await api.getProfile(accessToken);
-                totalBalanceBeforeXnxx += parseFloat(updatedProfile.balance);
+                totalBalanceXnxx += parseFloat(updatedProfile.balance);
             } else {
             }
         }
 
-        console.log(chalk.green.bold(`Total Balance Semua Akun : ${totalBalanceBeforeXnxx}\n\n`));
+        console.log(chalk.green.bold(`Total Balance Semua Akun : ${totalBalanceXnxx}\n\n`));
 
-
-        await new Promise(resolve => {
-            let countdown = 3600;
-
-            const countdownInterval = setInterval(() => {
-                if (countdown > 0) {
-                    process.stdout.write(chalk.magenta(`Cooldown Claim Quest: ${countdown} detik. Bot By skwairdrop\r`));
-                    countdown--;
-                } else {
-                    clearInterval(countdownInterval);
-                    resolve();
-                    console.log();
-                }
-            }, 1000);
-        });
-
-
-        for (const tokens of tokensList) {
-            const profile = await api.getProfile(tokens.accessToken);
-            console.log(chalk.magenta.bold(`Akun: ${profile.tgUsername}`));
-            await xnxx(api, tokens.accessToken, tokens.refreshToken);
-            console.log(``);
-        }
-
-        let totalBalanceAfterXnxx = 0;
-        for (const tokens of tokensList) {
-            const profile = await api.getProfile(tokens.accessToken);
-            console.log(chalk.magenta(`Balance ${profile.tgUsername}: ${profile.balance}`));
-            totalBalanceAfterXnxx += parseFloat(profile.balance);
-        }
-
-        console.log(chalk.green.bold(`Total Balance Semua Akun: ${totalBalanceAfterXnxx}`));
-
-        await sendToTelegram(tokensList.length, totalBalanceAfterXnxx);
+        await sendToTelegram(tokensList.length, totalBalanceXnxx);
 
     } catch (error) {
         console.error(chalk.red('Error reading data file:'), error.message);
@@ -114,17 +81,17 @@ async function startBot() {
 }
 
 async function main() {
-    cron.schedule('0 1 * * *', async () => { 
+    cron.schedule('0 */4 * * *', async () => {
         await startBot();
         console.log();
         console.log(chalk.magenta.bold(`Cron AKTIF`));
-        console.log(chalk.magenta('Jam 08:00 WIB Autobot Akan Run Ulang...'));
+        console.log(chalk.magenta('Autobot Akan Run Ulang Setiap 4 Jam...'));
     });
 
     await startBot();
     console.log();
     console.log(chalk.magenta.bold(`Cron AKTIF`));
-    console.log(chalk.magenta('Jam 08:00 WIB Autobot Akan Run Ulang...'));
+    console.log(chalk.magenta('Autobot Akan Run Ulang Setiap 4 Jam...'));
 }
 
 main();
